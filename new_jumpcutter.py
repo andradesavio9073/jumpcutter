@@ -19,7 +19,7 @@ parser.add_argument('-t', type=int, default=int(multiprocessing.cpu_count()/4), 
 parser.add_argument('-o', type=str, default="", help="the output file. (optional. if not included, it'll use the input name)")
 parser.add_argument('-dd', type=str, help="The directory to save the output to")
 parser.add_argument('-p', type=str, help="A youtube playlist url to download and process")
-parser.add_argument('--use_playlist_list', type=bool, choices=[True, False], help="Use Playlist List file")
+parser.add_argument('--use_playlist_list', type=bool, choices=[True, False], default=False, help="Use Playlist List file")
 parser.add_argument('--silent_threshold', type=float, default=0.03, help="the volume amount that frames' audio needs to surpass to be consider \"sounded\". It ranges from 0 (silence) to 1 (max volume)")
 parser.add_argument('-sos', type=float, default=2, help="the speed that sounded (spoken) frames should be played at. Typically 1.")
 parser.add_argument('-sis', type=float, default=20, help="the speed that silent frames should be played at. 999999 for jumpcutting.")
@@ -40,7 +40,10 @@ FRAME_QUALITY = args.frame_quality
 
 playlist_itterator = args.playlist_init
 threads = args.t
-if not (args.use_playlist_list):
+processCount = 0
+global processLock
+
+if not (False):
     playlist_list = [[args.dd, args.p]]
 else:
     playlist_list = playlist_list.playlist_list
@@ -48,27 +51,45 @@ else:
 
 pid_itterator = 0
 def jumpcutter(pid, INPUT_FILE, DestiD):
+    global processCount
+    global processLock
     OUTPUT_FILE = DestiD+"/"+misc_func.fix_input(INPUT_FILE)
     neverland.process(pid, threads, INPUT_FILE, OUTPUT_FILE, frameRate, SAMPLE_RATE, SILENT_THRESHOLD, FRAME_SPREADAGE, NEW_SPEED, FRAME_QUALITY)
     os.remove(INPUT_FILE)
 
+    processLock.acquire()
+    processCount -= 1        #Locks prevent race condition when modifying global var
+    processLock.release()
+
+
+
+
 if __name__ == '__main__':
+    global processCount
+    global processLock
+
+    processLock = threading.Lock()
+
     for ddplaylist in playlist_list[playlist_itterator:]:
         playlist = Playlist(ddplaylist[1])
         playlist.populate_video_urls()
         dd = ddplaylist[0]
         misc_func.createPath(dd)
-        pool=multiprocessing.Pool(processes=threads*2)
         for video in tqdm(playlist.video_urls):
+            while processCount >= threads:    #Limits Number Of Active threads, only start new thread after old one is finished
+                sleep(1)
+
             try:
                 INPUT_FILE = misc_func.downloadFile(video)
             except:
                 sleep(5)
                 INPUT_FILE=misc_func.downloadFile(video)
 
-            pool.apply_async(jumpcutter, args=(pid_itterator, INPUT_FILE, dd))
-            #P = multiprocessing.Process(target=jumpcutter, args=(pid_itterator, INPUT_FILE, dd))
-            #P.start()
+            processLock.acquire()
+            processCount += 1       #Locks prevent race condition when modifying global var
+            processLock.release()
+
+            P = threading.Thread(target=jumpcutter, args=(pid_itterator, INPUT_FILE, dd))       #Using threading instead of multiprocessing, allows global var modification
+            P.start()
+
             pid_itterator=pid_itterator+1
-        pool.close()
-        pool.join()
