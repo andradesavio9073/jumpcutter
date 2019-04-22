@@ -3,7 +3,7 @@ from time import sleep
 import os
 import numpy as np
 from shutil import copyfile, rmtree, move
-
+import platform
 
 def getMaxVolume(s):
     maxv = float(np.max(s))
@@ -36,5 +36,8 @@ def deletePath(s): # Dangerous! Watch out!
         print ("Deletion of the directory %s failed" % s)
         print(OSError)
 def fix_input(input):
-    input = input.split("\\")
+    if platform.system() == 'Linux':
+        input = input.split("/")
+    else:
+        input = input.split("\\")
     return input[-1]
