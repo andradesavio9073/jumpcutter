@@ -15,11 +15,11 @@ gc.enable()
 parser = argparse.ArgumentParser(description='Modifies a video file to play at different speeds when there is sound vs. silence.')
 parser.add_argument('-i', type=str,  help='the video file you want modified')
 parser.add_argument('-u', type=str, help='A youtube url to download and process')
-parser.add_argument('-t', type=int, default=int(multiprocessing.cpu_count()/4), help='Number of threads to use')
+parser.add_argument('-t', type=int, default=int(multiprocessing.cpu_count()/4), help='Number of threads to use !DANGER do not modify if unaware of the implementation within the code')
 parser.add_argument('-o', type=str, default="", help="the output file. (optional. if not included, it'll use the input name)")
 parser.add_argument('-dd', type=str, help="The directory to save the output to")
 parser.add_argument('-p', type=str, help="A youtube playlist url to download and process")
-parser.add_argument('--use_playlist_list', type=bool, choices=[True, False], default=False, help="Use Playlist List file")
+parser.add_argument('--use_playlist_list', type=int, choices=[0, 1], default=0, help="Use Playlist List file")
 parser.add_argument('--silent_threshold', type=float, default=0.03, help="the volume amount that frames' audio needs to surpass to be consider \"sounded\". It ranges from 0 (silence) to 1 (max volume)")
 parser.add_argument('-sos', type=float, default=2, help="the speed that sounded (spoken) frames should be played at. Typically 1.")
 parser.add_argument('-sis', type=float, default=20, help="the speed that silent frames should be played at. 999999 for jumpcutting.")
@@ -37,13 +37,13 @@ SILENT_THRESHOLD = args.silent_threshold
 FRAME_SPREADAGE = args.frame_margin
 NEW_SPEED = [args.sis, args.sos]
 FRAME_QUALITY = args.frame_quality
-
+use_playlist_list = args.use_playlist_list
 playlist_itterator = args.playlist_init
 threads = args.t
 processCount = 0
 global processLock
 
-if not (False):
+if not (use_playlist_list):
     playlist_list = [[args.dd, args.p]]
 else:
     playlist_list = playlist_list.playlist_list
