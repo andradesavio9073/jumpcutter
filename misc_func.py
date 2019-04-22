@@ -26,8 +26,10 @@ def copyFrame(inputFrame,outputFrame, TEMP_FOLDER):
 def createPath(s):
     try:
         os.mkdir(s)
-    except OSError:
-        assert False, "Creation of the directory {} failed. (The folder may already exist. Delete or rename it, and try again.)".format(s)
+    except Exception as e:
+        print(e)
+        deletePath(s)
+        os.mkdir(s)
 
 def deletePath(s): # Dangerous! Watch out!
     try:
@@ -35,6 +37,7 @@ def deletePath(s): # Dangerous! Watch out!
     except OSError:
         print ("Deletion of the directory %s failed" % s)
         print(OSError)
+        
 def fix_input(input):
     if platform.system() == 'Linux':
         input = input.split("/")
