@@ -7,7 +7,6 @@ import numpy as np
 import re
 import math
 from contextlib import closing
-from PIL import Image
 import os
 
 def process(pid, threads, INPUT_FILE, OUTPUT_FILE, frameRate, SAMPLE_RATE, SILENT_THRESHOLD, FRAME_SPREADAGE, NEW_SPEED, FRAME_QUALITY):
