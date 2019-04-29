@@ -8,7 +8,7 @@ import re
 import math
 import os
 
-def process(pid, threads, INPUT_FILE, OUTPUT_FILE, frameRate, SAMPLE_RATE, SILENT_THRESHOLD, FRAME_SPREADAGE, NEW_SPEED, FRAME_QUALITY):
+def process(pid, threads, INPUT_FILE, OUTPUT_FILE, FRAME_RATE, SAMPLE_RATE, SILENT_THRESHOLD, FRAME_SPREADAGE, NEW_SPEED, FRAME_QUALITY):
     try:
         TEMP_FOLDER = "TEMP_"+str(pid)
         AUDIO_FADE_ENVELOPE_SIZE = 400 # smooth out transitiion's audio by quickly fading in/out (arbitrary magic number whatever)
@@ -32,16 +32,16 @@ def process(pid, threads, INPUT_FILE, OUTPUT_FILE, frameRate, SAMPLE_RATE, SILEN
         audioSampleCount = audioData.shape[0]
         maxAudioVolume = misc_func.getMaxVolume(audioData)
 
+        if FRAME_RATE is None:
+            FRAME_RATE = misc_func.getFrameRate(INPUT_FILE)
+
         f = open(TEMP_FOLDER+"/params.txt", 'r+')
         pre_params = f.read()
         f.close()
         params = pre_params.split('\n')
-        for line in params:
-            m = re.search('Stream #.*Video.* ([0-9]*) fps',line)
-            if m is not None:
-                frameRate = float(m.group(1))
 
-        samplesPerFrame = sampleRate/frameRate
+
+        samplesPerFrame = sampleRate/FRAME_RATE
 
         audioFrameCount = int(math.ceil(audioSampleCount/samplesPerFrame))
 
@@ -110,7 +110,7 @@ def process(pid, threads, INPUT_FILE, OUTPUT_FILE, frameRate, SAMPLE_RATE, SILEN
 
         wavfile.write(TEMP_FOLDER+"/audioNew.wav",SAMPLE_RATE,outputAudioData)
 
-        command = 'ffmpeg -v quiet -threads '+str(threads)+' -thread_queue_size 1024 -framerate '+str(frameRate)+' -i '+TEMP_FOLDER+'/newFrame%06d.jpg -i '+TEMP_FOLDER+'/audioNew.wav -strict -2 "'+OUTPUT_FILE+'"'
+        command = 'ffmpeg -v quiet -threads '+str(threads)+' -thread_queue_size 1024 -framerate '+str(FRAME_RATE)+' -i '+TEMP_FOLDER+'/newFrame%06d.jpg -i '+TEMP_FOLDER+'/audioNew.wav -strict -2 "'+OUTPUT_FILE+'"'
         subprocess.call(command, shell=True)
         misc_func.deletePath(TEMP_FOLDER)
 
