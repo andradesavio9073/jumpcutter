@@ -9,7 +9,10 @@ from tqdm import tqdm
 from time import sleep
 import os
 import gc
-
+import time
+import sys
+from colorama import init, Fore, Style
+init(autoreset=True)
 
 gc.enable()
 
@@ -57,20 +60,22 @@ else:
 
 
 pid_itterator = 0
-def jumpcutter(pid, INPUT_FILE, DestiD, out, format):
+def jumpcutter(pid, INPUT_FILE, DestiD, out, format, tqdm_func, color):
     global processCount
     global processLock
     OUTPUT_FILE = DestiD + '/' + out + '.' + format
     if os.path.exists(OUTPUT_FILE):
+        tqdm_func.write(color + '{} already exists..... Skipping file'.format(out))
         pass
     else:
         neverland.process(pid, 2*threads, INPUT_FILE, OUTPUT_FILE, FRAME_RATE, SAMPLE_RATE, SILENT_THRESHOLD, FRAME_SPREADAGE, NEW_SPEED, FRAME_QUALITY)
+    tqdm_func.write(color + 'Deleteing Input File for Process {}'.format(pid))
     os.remove(INPUT_FILE)
 
     processLock.acquire()
     processCount -= 1        #Locks prevent race condition when modifying global var
     processLock.release()
-
+    tqdm_func.write(color + 'Process {} complete'.format(pid))
 
 
 
@@ -86,23 +91,30 @@ if __name__ == '__main__':
             pass
         else:
             misc_func.createPath(dd)
-        print("Processing {}".format(dd))
+        print(Fore.RED + 'Processing {}'.format(dd))
+
         for video in tqdm(playlist.video_urls):
-            while processCount >= threads:    #Limits Number Of Active threads, only start new thread after old one is finished
-                sleep(1)
-
             try:
+                while processCount >= threads:    #Limits Number Of Active threads, only start new thread after old one is finished
+                    sleep(1)
+                if pid_itterator%2 == 0:
+                    color = Fore.GREEN
+                elif pid_itterator%2 == 1:
+                    color = Fore.CYAN
+                tqdm.write(color + 'Downloading File for process {}'.format(pid_itterator))
                 INPUT_FILE , OUTPUT_FILE, format = misc_func.downloadFile(video)
+                tqdm.write(color + '{} downloaded'.format(OUTPUT_FILE))
 
-            except:
-                sleep(5)
-                INPUT_FILE, OUTPUT_FILE, format = misc_func.downloadFile(video)
+                processLock.acquire()
+                processCount += 1       #Locks prevent race condition when modifying global var
+                processLock.release()
 
-            processLock.acquire()
-            processCount += 1       #Locks prevent race condition when modifying global var
-            processLock.release()
-
-            P = threading.Thread(target=jumpcutter, args=(pid_itterator, INPUT_FILE, dd, OUTPUT_FILE, format))       #Using threading instead of multiprocessing, allows global var modification
-            P.start()
+                tqdm.write(color + 'Starting Process for Session {} on process thread {}'.format(pid_itterator, processCount))
+                P = threading.Thread(target=jumpcutter, args=(pid_itterator, INPUT_FILE, dd, OUTPUT_FILE, format, tqdm, color))       #Using threading instead of multiprocessing, allows global var modification
+                P.daemon=True
+                P.start()
+            except (KeyboardInterrupt, SystemExit):
+                print(Fore.RED + '\n! Received keyboard interrupt, quitting threads.\n')
+                sys.exit()
 
             pid_itterator=pid_itterator+1
