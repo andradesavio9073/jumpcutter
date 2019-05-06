@@ -1,4 +1,3 @@
-from pytube import YouTube
 from time import sleep
 import os
 import numpy as np
@@ -23,8 +22,6 @@ class MyLogger(object):
     def error(self, msg):
         print(msg)
 
-# f = open(os.devnull, 'w')
-# sys.stdout = f
 
 def getMaxVolume(s):
     maxv = float(np.max(s))
@@ -51,7 +48,6 @@ def downloadFile(url):
     else:
         inputname = alt_inputname
         format = 'mkv'
-    #name = YouTube(url).streams.first().download()
     return inputname, title, format
 
 def copyFrame(inputFrame,outputFrame, TEMP_FOLDER):
